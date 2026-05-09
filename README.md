@@ -25,7 +25,7 @@ A beautiful, Apple Weather‑inspired custom card for Home Assistant with smooth
 
 ## 🆕 What's new in v2.3.0
 
-https://github.com/maxfok/nimbus-weather-card/raw/main/Screen_Recording_2026-05-09_at_7_59_24_AM.gif
+"https://github.com/maxfok/nimbus-weather-card/raw/main/Screen_Recording_2026-05-09_at_7_59_24_AM.gif"
 
 This release focuses on atmosphere, smoother transitions, and a more polished forecast modal experience.
 

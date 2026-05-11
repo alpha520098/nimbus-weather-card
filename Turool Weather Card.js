@@ -294,12 +294,12 @@ function _lerpColor(a, b, t) {
   return `rgb(${Math.round(ar+(br-ar)*t)},${Math.round(ag+(bg-ag)*t)},${Math.round(ab+(bb-ab)*t)})`;
 }
 
-class NimbusWeatherCard extends HTMLElement {
+class TuroolWeatherCard extends HTMLElement {
   static getStubConfig(hass) {
     const entity = hass ? Object.keys(hass.states).find(e => e.startsWith('weather.')) || 'weather.home' : 'weather.home';
     return { entity };
   }
-  static getConfigElement() { return document.createElement('nimbus-weather-card-editor'); }
+  static getConfigElement() { return document.createElement('turool-weather-card-editor'); }
   _layoutRows() {
     return this._config?.show_forecast === false ? 4 : 5;
   }
@@ -369,30 +369,31 @@ class NimbusWeatherCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error('Please define a weather entity');
-    this._config = {
-      entity: config.entity,
-      forecast_type: config.forecast_type || 'daily',
-      max_items: config.max_items || 5,
-      show_forecast: config.show_forecast !== false,
-      show_details: config.show_details !== false,
-      name: config.name || null,
-      moon_entity: config.moon_entity || null,
-      sun_entity: config.sun_entity || null,
-      temperature_unit: config.temperature_unit || 'C',
-      use_24h: config.use_24h !== false,
-      show_feels_like: config.show_feels_like !== false,
-      animation_speed: config.animation_speed ?? 0,
-      language: config.language || 'en',
-      wind_unit: config.wind_unit || 'kmh',
-      show_clock: config.show_clock || false,
-      local_sensors: config.local_sensors || [],
-      ufo_easter_egg: config.ufo_easter_egg !== false,
-      latitude_zone: config.latitude_zone || 'northern_temperate',
-      aurora_override: config.aurora_override || false,
-      tap_action: config.tap_action || null,
-    };
-  }
+  if (!config.entity) throw new Error('Please define a weather entity');
+  this._config = {
+    entity: config.entity,
+    forecast_type: config.forecast_type || 'daily',
+    max_items: config.max_items || 5,
+    show_forecast: config.show_forecast !== false,
+    show_details: config.show_details !== false,
+    name: config.name || null,
+    moon_entity: config.moon_entity || null,
+    sun_entity: config.sun_entity || null,
+    temperature_unit: config.temperature_unit || 'C',
+    use_24h: config.use_24h !== false,
+    show_feels_like: config.show_feels_like !== false,
+    animation_speed: config.animation_speed ?? 0,
+    language: config.language || 'en',
+    wind_unit: config.wind_unit || 'kmh',
+    show_clock: config.show_clock || false,
+    show_local_sensors: config.show_local_sensors !== false,
+    local_sensors: config.local_sensors || [],
+    ufo_easter_egg: config.ufo_easter_egg !== false,
+    latitude_zone: config.latitude_zone || 'northern_temperate',
+    aurora_override: config.aurora_override || false,
+    tap_action: config.tap_action || null,
+  };
+}
 
   // Επιστρέφει ταχύτητα ανέμου και μονάδα από το HA state
   _windSpeed(attrs) {
@@ -3334,7 +3335,7 @@ _clearDroplets() {
           <span>${this._forecastButtonLabel(modalForecastType)}</span>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 9L7 5L11 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>` : ''}
-        ${!this._config.show_forecast && this._config.local_sensors?.length ? `
+        ${this._config.show_local_sensors !== false && this._config.local_sensors?.length ? `
         <div class="sf">
           ${this._config.local_sensors.map(s => {
             const ent = this._hass?.states[s.entity];
@@ -3701,19 +3702,18 @@ _clearDroplets() {
   }
 }
 
-if (!customElements.get('nimbus-weather-card')) customElements.define('nimbus-weather-card', NimbusWeatherCard);
+if (!if (!customElements.get('nimbus-weather-card')) customElements.define('nimbus-weather-card', NimbusWeatherCard);) customElements.define('nimbus-weather-card', NimbusWeatherCard);
 
 window.customCards = window.customCards || [];
 (window.customCards = window.customCards || []).push({
-  type: 'nimbus-weather-card',
-  name: 'Nimbus Weather Card',
-  description: 'Apple Weather-inspired card with smooth particle effects, dynamic backgrounds, and moon phase support.',
+  type: 'turool-weather-card',
+  name: 'Turool Weather Card',
+  description: 'Custom weather card based on Nimbus Weather Card with expanded Home Assistant sensor support.',
   preview: true,
-  documentationURL: 'https://github.com/maxfok/nimbus-weather-card',
+  documentationURL: 'https://github.com/alpha520098/nimbus-weather-card',
 });
-
 // ── CONFIG EDITOR ──────────────────────────────────────────────────────────────
-class NimbusWeatherCardEditor extends HTMLElement {
+class TuroolWeatherCardEditor extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -4082,7 +4082,7 @@ class NimbusWeatherCardEditor extends HTMLElement {
       // Start from existing config to preserve unknown fields like grid_options
       const cfg = {
         ...this._config,
-        type: 'custom:nimbus-weather-card',
+        type: 'custom:turool-weather-card',
         entity,
         forecast_type: sr.getElementById('forecast_type')?.value || 'daily',
         max_items: parseInt(sr.getElementById('max_items')?.value) || 5,
@@ -4153,4 +4153,4 @@ class NimbusWeatherCardEditor extends HTMLElement {
   }
 }
 
-if (!customElements.get('nimbus-weather-card-editor')) customElements.define('nimbus-weather-card-editor', NimbusWeatherCardEditor);
+if (!customElements.get('turool-weather-card-editor')) customElements.define('turool-weather-card-editor', TuroolWeatherCardEditor);

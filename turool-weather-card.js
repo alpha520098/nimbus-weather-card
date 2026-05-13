@@ -1,4 +1,4 @@
-// Nimbus Weather Card v2.3.1
+// Nimbus Weather Card v2.3.2
 // https://github.com/maxfok/nimbus-weather-card
 // (c) 2024 Gerasimos Fokaefs — MIT License
 
@@ -301,7 +301,11 @@ class TuroolWeatherCard extends HTMLElement {
   }
   static getConfigElement() { return document.createElement('turool-weather-card-editor'); }
   _layoutRows() {
-    return this._config?.show_forecast === false ? 4 : 5;
+    const baseRows = this._config?.show_forecast === false ? 4 : 5;
+    const sensorCount = this._config?.show_local_sensors !== false
+      ? (this._config?.local_sensors || []).filter(sensor => sensor?.entity).length
+      : 0;
+    return baseRows + (sensorCount ? Math.min(3, Math.ceil(sensorCount / 3)) : 0);
   }
 
   getCardSize() { return this._layoutRows(); }
@@ -3275,6 +3279,7 @@ _clearDroplets() {
       ? forecast
       : (this._dailyForecast.length ? this._dailyForecast : (attrs.forecast || []));
     const items   = forecast.slice(0, this._config.max_items);
+    const localSensors = (this._config.local_sensors || []).filter(sensor => sensor?.entity);
 
     const bgEl = this.shadowRoot.getElementById('bg');
     if (bgEl) {
@@ -3335,18 +3340,19 @@ _clearDroplets() {
           <span>${this._forecastButtonLabel(modalForecastType)}</span>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 9L7 5L11 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>` : ''}
-        ${this._config.show_local_sensors !== false && this._config.local_sensors?.length ? `
+        ${this._config.show_local_sensors !== false && localSensors.length ? `
         <div class="sf">
-          ${this._config.local_sensors.map(s => {
+          ${localSensors.map(s => {
             const ent = this._hass?.states[s.entity];
-            const val = ent ? ent.state : '--';
+            const rawState = ent ? ent.state : 'unavailable';
+            const val = ['unknown', 'unavailable'].includes(String(rawState).toLowerCase()) ? '--' : rawState;
             const unit = ent ? (ent.attributes.unit_of_measurement || '') : '';
             const name = s.name || (ent ? ent.attributes.friendly_name : s.entity);
-            const icon = s.icon || 'mdi:gauge';
+            const icon = s.icon || ent?.attributes?.icon || 'mdi:gauge';
             return `<div class="sr">
-              <ha-icon icon="${icon}"></ha-icon>
-              <span class="sn">${name}</span>
-              <span class="sv">${val}</span><span class="su">${unit}</span>
+              <ha-icon icon="${this._escapeHtml(icon)}"></ha-icon>
+              <span class="sn">${this._escapeHtml(name)}</span>
+              <span class="sv">${this._escapeHtml(val)}</span><span class="su">${this._escapeHtml(unit)}</span>
             </div>`;
           }).join('')}
         </div>` : ''}
@@ -3702,7 +3708,9 @@ _clearDroplets() {
   }
 }
 
-if (!if (!customElements.get('nimbus-weather-card')) customElements.define('nimbus-weather-card', NimbusWeatherCard);) customElements.define('nimbus-weather-card', NimbusWeatherCard);
+if (!customElements.get('turool-weather-card')) customElements.define('turool-weather-card', TuroolWeatherCard);
+// Backwards-compatible alias for dashboards that still use custom:nimbus-weather-card.
+if (!customElements.get('nimbus-weather-card')) customElements.define('nimbus-weather-card', TuroolWeatherCard);
 
 window.customCards = window.customCards || [];
 (window.customCards = window.customCards || []).push({
@@ -3956,32 +3964,24 @@ class TuroolWeatherCardEditor extends HTMLElement {
 <datalist id="entities-list">
   ${this._hass ? Object.keys(this._hass.states).filter(e=>!e.startsWith('weather.')&&!e.startsWith('sun.')).sort().map(e=>`<option value="${e}">`).join('') : ''}
 </datalist>
-<div class="section" id="sensors-section" style="opacity:${this._val('show_forecast',true)?'0.4':'1'}">
-  <div class="section-title">Local Sensors <span style="font-size:10px;font-weight:400;opacity:0.6">${this._val('show_forecast',true)?'(disable forecast to use)':''}</span></div>
+<div class="section" id="sensors-section">
+  <div class="section-title">Local Sensors <span style="font-size:10px;font-weight:400;opacity:0.6">(displayed below forecast/details)</span></div>
+  <div class="row">
+    <div><div class="label">Show Local Sensors</div><div class="sublabel">Display your selected Home Assistant entities on the card</div></div>
+    ${this._toggle('show_local_sensors', this._val('show_local_sensors', true))}
+  </div>
   ${(c.local_sensors||[]).map((s,i)=>`
   <div class="row sensor-entry" data-idx="${i}" style="flex-direction:column;align-items:stretch;gap:6px;padding-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div class="label">Sensor ${i+1}</div>
-      <button class="remove-sensor" data-idx="${i}" style="background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:16px;padding:0 4px" ${this._val('show_forecast',true)?'disabled':''}>✕</button>
+      <button class="remove-sensor" data-idx="${i}" style="background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:16px;padding:0 4px">✕</button>
     </div>
-    <input type="text" list="entities-list" class="sensor-entity" data-idx="${i}" value="${s.entity||''}" placeholder="Search entity..." ${this._val('show_forecast',true)?'disabled':''}>
-    ${customElements.get('ha-icon-picker') !== undefined ? `
-    <ha-icon-picker
-      class="sensor-icon-picker"
-      data-idx="${i}"
-      .value="${s.icon||''}"
-      .label=${"Icon"}
-      ${this._val('show_forecast',true)?'disabled':''}
-      @value-changed="${(e)=>{ const ip=this.shadowRoot.querySelector(`.sensor-icon[data-idx='${i}']`); if(ip) ip.value=e.detail.value; }}"
-    ></ha-icon-picker>
-    <input type="hidden" class="sensor-icon" data-idx="${i}" value="${s.icon||''}">
-    ` : `
-    <input type="text" class="sensor-icon" data-idx="${i}" value="${s.icon||''}" placeholder="mdi:thermometer" ${this._val('show_forecast',true)?'disabled':''}>
-    `}
-    <input type="text" class="sensor-name" data-idx="${i}" value="${s.name||''}" placeholder="Label (optional)" ${this._val('show_forecast',true)?'disabled':''}>
+    <input type="text" list="entities-list" class="sensor-entity" data-idx="${i}" value="${s.entity||''}" placeholder="Search entity...">
+    <input type="text" class="sensor-icon" data-idx="${i}" value="${s.icon||''}" placeholder="mdi:thermometer">
+    <input type="text" class="sensor-name" data-idx="${i}" value="${s.name||''}" placeholder="Label (optional)">
   </div>`).join('')}
-  ${(c.local_sensors||[]).length < 4 ? `
-  <button id="add-sensor" style="width:100%;padding:8px;border-radius:8px;border:1px dashed var(--color-border-secondary);background:none;cursor:pointer;color:var(--color-text-secondary);font-size:14px" ${this._val('show_forecast',true)?'disabled':''}>+ Add sensor</button>` : ''}
+  ${(c.local_sensors||[]).length < 8 ? `
+  <button id="add-sensor" style="width:100%;padding:8px;border-radius:8px;border:1px dashed var(--color-border-secondary);background:none;cursor:pointer;color:var(--color-text-secondary);font-size:14px">+ Add sensor</button>` : ''}
 </div>
 
 <!-- TAP ACTION -->
@@ -4095,6 +4095,7 @@ class TuroolWeatherCardEditor extends HTMLElement {
         animation_speed: parseFloat(sr.getElementById('animation_speed')?.value ?? 0),
         wind_unit: sr.getElementById('wind_unit')?.value || 'kmh',
         show_clock: getChecked('show_clock', false),
+        show_local_sensors: getChecked('show_local_sensors', true),
         ufo_easter_egg: getChecked('ufo_easter_egg', true),
         latitude_zone: sr.getElementById('latitude_zone')?.value || 'northern_temperate',
         local_sensors: getSensors(),
@@ -4133,7 +4134,7 @@ class TuroolWeatherCardEditor extends HTMLElement {
     // Add sensor button
     sr.getElementById('add-sensor')?.addEventListener('click', () => {
       const sensors = getSensors();
-      if (sensors.length >= 4) return;
+      if (sensors.length >= 8) return;
       sensors.push({ entity: '', icon: 'mdi:gauge', name: '' });
       this._config = { ...this._config, local_sensors: sensors };
       this._render();

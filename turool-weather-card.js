@@ -297,11 +297,23 @@ function _lerpColor(a, b, t) {
 class TuroolWeatherCard extends HTMLElement {
   static getStubConfig(hass) {
     const entity = hass ? Object.keys(hass.states).find(e => e.startsWith('weather.')) || 'weather.home' : 'weather.home';
-    return { entity };
+    return {
+      entity,
+      card_size: 'medium',
+      show_clock: true,
+      clock_show_seconds: true,
+      use_24h: false,
+      show_local_sensors: true,
+      local_sensors: [],
+    };
   }
   static getConfigElement() { return document.createElement('turool-weather-card-editor'); }
   _layoutRows() {
-    const baseRows = this._config?.show_forecast === false ? 4 : 5;
+    const sizeRows = { small: 4, medium: 5, large: 6 };
+    const configuredSize = this._config?.card_size || 'medium';
+    const baseRows = this._config?.show_forecast === false
+      ? Math.max(3, (sizeRows[configuredSize] || 5) - 1)
+      : (sizeRows[configuredSize] || 5);
     const sensorCount = this._config?.show_local_sensors !== false
       ? (this._config?.local_sensors || []).filter(sensor => sensor?.entity).length
       : 0;
@@ -311,7 +323,9 @@ class TuroolWeatherCard extends HTMLElement {
   getCardSize() { return this._layoutRows(); }
   getGridOptions() {
     const rows = this._layoutRows();
-    return { rows, columns: 12, min_rows: rows, min_columns: 6 };
+    const columnsBySize = { small: 6, medium: 9, large: 12 };
+    const columns = columnsBySize[this._config?.card_size || 'medium'] || 9;
+    return { rows, columns, min_rows: rows, min_columns: Math.min(columns, 6) };
   }
 
   constructor() {
@@ -384,12 +398,14 @@ class TuroolWeatherCard extends HTMLElement {
     moon_entity: config.moon_entity || null,
     sun_entity: config.sun_entity || null,
     temperature_unit: config.temperature_unit || 'C',
+    card_size: ['small', 'medium', 'large'].includes(config.card_size) ? config.card_size : 'medium',
     use_24h: config.use_24h !== false,
     show_feels_like: config.show_feels_like !== false,
     animation_speed: config.animation_speed ?? 0,
     language: config.language || 'en',
     wind_unit: config.wind_unit || 'kmh',
     show_clock: config.show_clock || false,
+    clock_show_seconds: config.clock_show_seconds || false,
     show_local_sensors: config.show_local_sensors !== false,
     local_sensors: config.local_sensors || [],
     ufo_easter_egg: config.ufo_easter_egg !== false,
@@ -397,6 +413,9 @@ class TuroolWeatherCard extends HTMLElement {
     aurora_override: config.aurora_override || false,
     tap_action: config.tap_action || null,
   };
+  this.dataset.cardSize = this._config.card_size;
+  this._initialized = false;
+  this._render();
 }
 
   // Επιστρέφει ταχύτητα ανέμου και μονάδα από το HA state
@@ -2527,8 +2546,25 @@ _clearDroplets() {
     this._lastBgKey = null;
     this.shadowRoot.innerHTML = `
 <style>
-:host { display:block; font-family:system-ui,-apple-system,sans-serif; width:100%; position:relative; z-index:0; isolation:isolate; margin:0 !important; padding:0 !important; }
-.wrapper { position:relative; border-radius:24px; width:100%; margin:0; padding:0; }
+:host { display:block; font-family:system-ui,-apple-system,sans-serif; width:100%; position:relative; z-index:0; isolation:isolate; margin:0 !important; padding:0 !important; --nimbus-card-min-height:250px; --nimbus-content-padding:18px; --nimbus-temp-size:62px; --nimbus-radius:24px; }
+.wrapper { position:relative; border-radius:var(--nimbus-radius); width:100%; margin:0; padding:0; }
+:host([data-card-size=small]) { --nimbus-card-min-height:190px; --nimbus-content-padding:14px; --nimbus-temp-size:46px; --nimbus-radius:20px; }
+:host([data-card-size=medium]) { --nimbus-card-min-height:250px; --nimbus-content-padding:18px; --nimbus-temp-size:62px; --nimbus-radius:24px; }
+:host([data-card-size=large]) { --nimbus-card-min-height:340px; --nimbus-content-padding:24px; --nimbus-temp-size:78px; --nimbus-radius:28px; }
+:host([data-card-size=small]) .cn2 { font-size:15px; margin-bottom:8px; }
+:host([data-card-size=small]) .det { padding:6px 9px; }
+:host([data-card-size=small]) .det-row-main { gap:8px; }
+:host([data-card-size=small]) .di { font-size:11px; }
+:host([data-card-size=small]) .fc-expand-btn { display:none; }
+:host([data-card-size=small]) .fi { min-width:44px; padding:7px 4px; }
+:host([data-card-size=small]) .fic { width:24px; height:24px; }
+:host([data-card-size=small]) .sf { display:grid; grid-template-columns:1fr 1fr; }
+:host([data-card-size=small]) .sr { padding:7px 9px; }
+:host([data-card-size=large]) .det, :host([data-card-size=large]) .fc, :host([data-card-size=large]) .sf { border-radius:20px; }
+:host([data-card-size=large]) .fi { padding:14px 8px; }
+:host([data-card-size=large]) .fic { width:36px; height:36px; }
+:host([data-card-size=large]) .sf { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+:host([data-card-size=large]) .sr:nth-last-child(2):nth-child(odd) { border-bottom:none; }
 
 /* ── BACKGROUNDS ── */
 .bg { position:absolute; inset:0; border-radius:24px; z-index:0; pointer-events:none; opacity:1; transition:opacity 180s ease; will-change:opacity }
@@ -2644,7 +2680,7 @@ _clearDroplets() {
 }
 
 /* ── CONTENT ── */
-.ct { position:relative; z-index:6; padding:18px; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,0.35), 0 0 8px rgba(0,0,0,0.2) }
+.ct { position:relative; z-index:6; padding:var(--nimbus-content-padding); color:#fff; text-shadow:0 2px 4px rgba(0,0,0,0.35), 0 0 8px rgba(0,0,0,0.2) }
 .entity-error { min-height:170px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
 .entity-error-title { font-size:15px; font-weight:700; letter-spacing:.02em; }
 .entity-error-subtitle { font-size:12px; line-height:1.4; opacity:.75; max-width:260px; }
@@ -2884,11 +2920,11 @@ _clearDroplets() {
 .cloud2 svg { animation-duration:18s; animation-delay:-6s }
 .cloud3 svg { animation-duration:26s; animation-delay:-11s }
 .cloud4 svg { animation-duration:20s; animation-delay:-3s }
-.card { margin:0; position:relative; border-radius:24px; min-height:170px; cursor:pointer; width:100%; overflow:hidden }
+.card { margin:0; position:relative; border-radius:var(--nimbus-radius); min-height:var(--nimbus-card-min-height); cursor:pointer; width:100%; overflow:hidden }
 .hd   { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px }
 .loc  { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; opacity:.85 }
 .cnd  { font-size:11px; opacity:.7; text-transform:capitalize }
-.tmp  { font-size:62px; font-weight:200; letter-spacing:-2px; line-height:1; margin-bottom:2px }
+.tmp  { font-size:var(--nimbus-temp-size); font-weight:200; letter-spacing:-2px; line-height:1; margin-bottom:2px }
 .hl   { font-size:13px; opacity:.75; font-weight:500; margin-bottom:2px; text-shadow:0 1px 4px rgba(0,0,0,0.45) }
 .high { color:#ff9f7c; text-shadow:0 1px 4px rgba(0,0,0,0.45) }
 .low  { color:#7cb9ff; text-shadow:0 1px 4px rgba(0,0,0,0.45) }
@@ -3003,7 +3039,7 @@ _clearDroplets() {
 </style>
 
 <div class="wrapper">
-  <div class="card" id="card" role="button" tabindex="0" aria-label="Weather card, click for more details">
+  <div class="card card-size-${this._config?.card_size || 'medium'}" id="card" role="button" tabindex="0" aria-label="Weather card, click for more details">
     <div class="bg" id="bg"></div>
     <div class="bg" id="bg-fade"></div>
     <canvas id="wx-canvas"></canvas>
@@ -3501,13 +3537,17 @@ _clearDroplets() {
     const el = this.shadowRoot?.getElementById('det-clock');
     if (!el) return;
     const now = new Date();
-    const locMap = {'en':'en-US','es':'es-ES','de':'de-DE'};
+    const locMap = {'en':'en-US','es':'es-ES','de':'de-DE','nl':'nl-NL'};
     const loc = locMap[this._config?.language||'en'] || 'en-US';
     const dateStr = now.toLocaleDateString(loc, { weekday:'short', day:'numeric', month:'short' });
-    const h = String(now.getHours()).padStart(2,'0');
-    const m = String(now.getMinutes()).padStart(2,'0');
+    const timeStr = now.toLocaleTimeString(loc, {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: this._config?.clock_show_seconds ? '2-digit' : undefined,
+      hour12: this._config?.use_24h === false,
+    });
     el.querySelector('.det-clock-date').textContent = dateStr;
-    el.querySelector('.det-clock-time').textContent = h + ':' + m;
+    el.querySelector('.det-clock-time').textContent = timeStr;
   }
 
   _initDetSplash(condition) {
@@ -3715,8 +3755,8 @@ if (!customElements.get('nimbus-weather-card')) customElements.define('nimbus-we
 window.customCards = window.customCards || [];
 (window.customCards = window.customCards || []).push({
   type: 'turool-weather-card',
-  name: 'Turool Weather Card',
-  description: 'Custom weather card based on Nimbus Weather Card with expanded Home Assistant sensor support.',
+  name: 'Nimbus Weather Card',
+  description: 'Animated Nimbus-based weather card with selectable weather entities, local sensors, sizes, and clock options.',
   preview: true,
   documentationURL: 'https://github.com/alpha520098/nimbus-weather-card',
 });
@@ -3868,6 +3908,14 @@ class TuroolWeatherCardEditor extends HTMLElement {
     <input type="text" id="name" value="${c.name||''}" placeholder="e.g. Athens">
   </div>
   <div class="row">
+    <div><div class="label">Card Size</div><div class="sublabel">Small, medium, or large dashboard footprint</div></div>
+    <select id="card_size">
+      <option value="small" ${this._val('card_size','medium')==='small'?'selected':''}>Small</option>
+      <option value="medium" ${this._val('card_size','medium')==='medium'?'selected':''}>Medium</option>
+      <option value="large" ${this._val('card_size','medium')==='large'?'selected':''}>Large</option>
+    </select>
+  </div>
+  <div class="row">
     <div><div class="label">Display Unit</div><div class="sublabel">Card converts automatically from entity unit</div></div>
     <select id="temperature_unit">
       <option value="C" ${this._val('temperature_unit','C')==='C'?'selected':''}>°C</option>
@@ -3875,7 +3923,7 @@ class TuroolWeatherCardEditor extends HTMLElement {
     </select>
   </div>
   <div class="row">
-    <div><div class="label">24h Time Format</div><div class="sublabel">Used in hourly forecast</div></div>
+    <div><div class="label">24h Time Format</div><div class="sublabel">Turn off for AM/PM clock and hourly forecast times</div></div>
     ${this._toggle('use_24h', this._val('use_24h', true))}
   </div>
 </div>
@@ -3917,6 +3965,10 @@ class TuroolWeatherCardEditor extends HTMLElement {
   <div class="row">
     <div><div class="label">Show Clock</div><div class="sublabel">Date &amp; time inside details</div></div>
     ${this._toggle('show_clock', this._val('show_clock', false))}
+  </div>
+  <div class="row">
+    <div><div class="label">Show Seconds</div><div class="sublabel">Adds seconds to the card clock</div></div>
+    ${this._toggle('clock_show_seconds', this._val('clock_show_seconds', false))}
   </div>
   <div class="row">
     <div><div class="label">Wind Speed Unit</div><div class="sublabel">km/h or Beaufort scale</div></div>
@@ -4091,10 +4143,12 @@ class TuroolWeatherCardEditor extends HTMLElement {
         show_details: getChecked('show_details', true),
         show_feels_like: getChecked('show_feels_like', true),
         temperature_unit: sr.getElementById('temperature_unit')?.value || 'C',
+        card_size: sr.getElementById('card_size')?.value || 'medium',
         use_24h: getChecked('use_24h', true),
         animation_speed: parseFloat(sr.getElementById('animation_speed')?.value ?? 0),
         wind_unit: sr.getElementById('wind_unit')?.value || 'kmh',
         show_clock: getChecked('show_clock', false),
+        clock_show_seconds: getChecked('clock_show_seconds', false),
         show_local_sensors: getChecked('show_local_sensors', true),
         ufo_easter_egg: getChecked('ufo_easter_egg', true),
         latitude_zone: sr.getElementById('latitude_zone')?.value || 'northern_temperate',

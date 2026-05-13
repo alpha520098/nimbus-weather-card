@@ -3710,7 +3710,11 @@ _clearDroplets() {
 
 if (!customElements.get('turool-weather-card')) customElements.define('turool-weather-card', TuroolWeatherCard);
 // Backwards-compatible alias for dashboards that still use custom:nimbus-weather-card.
-if (!customElements.get('nimbus-weather-card')) customElements.define('nimbus-weather-card', TuroolWeatherCard);
+// CustomElementRegistry does not allow registering the same constructor twice,
+// so the legacy alias gets a dedicated subclass constructor.
+if (!customElements.get('nimbus-weather-card')) {
+  customElements.define('nimbus-weather-card', class NimbusWeatherCard extends TuroolWeatherCard {});
+}
 
 window.customCards = window.customCards || [];
 (window.customCards = window.customCards || []).push({

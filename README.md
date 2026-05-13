@@ -4,8 +4,8 @@
 
 A beautiful, Apple Weather‑inspired custom card for Home Assistant with smooth particle effects, dynamic backgrounds, and full moon phase support.
 
-🔗 **GitHub**: https://github.com/maxfok/nimbus-weather-card  
-📦 **HACS**: Search "Nimbus Weather Card"
+🔗 **GitHub**: https://github.com/alpha520098/nimbus-weather-card<br>
+📦 **HACS**: Search "Turool Weather Card"
 
 ---
 
@@ -21,15 +21,19 @@ A beautiful, Apple Weather‑inspired custom card for Home Assistant with smooth
 - **Hourly/Daily forecast toggle** – tap the forecast bar to switch view
 - **Custom tap action** – navigate, call-service, url, or more-info
 - **Clock & date panel** – optional, togglable
+- **Custom local sensors** – add up to 8 Home Assistant entities and display their live state, unit, label, and icon below the weather details/forecast
 - **HACS compatible** – one-click install via custom repository
 
 ---
 
-## 🆕 What's new in v2.3.0
+## 🆕 What's new in v2.3.2
 
 "https://github.com/maxfok/nimbus-weather-card/raw/main/Screen_Recording_2026-05-09_at_7_59_24_AM.gif"
 
-This release focuses on atmosphere, smoother transitions, and a more polished forecast modal experience.
+This release focuses on Home Assistant usability: custom local sensors can be added from the editor or YAML, and the card registration has been fixed while keeping the earlier atmosphere and forecast-modal polish.
+
+### 🧩 Home Assistant Local Sensors
+Add your own Home Assistant entities under **Local Sensors** in the visual editor, or configure them in YAML with `local_sensors`. They display below the details/forecast with live state, unit, label, and icon.
 
 ### 🌅 Slow Background Cross-Fade
 Sky gradients now transition with a slow 3-minute cross-fade instead of an abrupt change. Sunrise, golden hour, daytime, and night phases blend naturally as sun elevation changes. The card also schedules a refresh around key sun-elevation thresholds so the sky updates at the right moment.
@@ -38,7 +42,7 @@ Sky gradients now transition with a slow 3-minute cross-fade instead of an abrup
 Clear nights in the Arctic latitude zone can show a soft aurora overlay with layered green, blue, and purple ribbons. Enabled via `latitude_zone: arctic` in your card config.
 
 ```yaml
-type: custom:nimbus-weather-card
+type: custom:turool-weather-card
 entity: weather.home
 latitude_zone: arctic
 ```
@@ -68,6 +72,11 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 ---
 
 ## 📋 Changelog
+
+### v2.3.2
+- ✨ **Home Assistant local sensors** — add your own entities from the visual editor or YAML and display them on the card alongside the forecast.
+- ✨ **Forecast + sensors together** — local sensors no longer require disabling the forecast.
+- 🐛 Fixed custom element registration so Home Assistant can load `custom:turool-weather-card` reliably, with `custom:nimbus-weather-card` retained as a backwards-compatible alias.
 
 ### v2.3.0
 - ✨ **Slow background cross-fade** — sky gradients blend over ~3 minutes between elevation zones
@@ -129,15 +138,15 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 ### Via HACS (recommended)
 1. Open HACS → Frontend
 2. Click the three-dot menu (⋮) → **Custom repositories**
-3. Add URL: `https://github.com/maxfok/nimbus-weather-card`
+3. Add URL: `https://github.com/alpha520098/nimbus-weather-card`
 4. Category: **Dashboard**
-5. Click **Add**, then find **Nimbus Weather Card** and install
+5. Click **Add**, then find **Turool Weather Card** and install
 
 ### Manual
-1. Download `nimbus-weather-card.js`
-2. Copy to `/config/www/nimbus-weather-card.js`
+1. Download `turool-weather-card.js`
+2. Copy to `/config/www/turool-weather-card.js`
 3. Add as a custom resource: `Settings → Dashboards → Resources → Add`
-   - URL: `/local/nimbus-weather-card.js`
+   - URL: `/local/turool-weather-card.js`
    - Type: JavaScript module
 
 ---
@@ -145,12 +154,20 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 ## ⚙️ Configuration
 
 ```yaml
-type: custom:nimbus-weather-card
+type: custom:turool-weather-card # custom:nimbus-weather-card also works as an alias
 entity: weather.forecast_home
 sun_entity: sun.sun          # optional but recommended
 moon_entity: sensor.moon     # optional, for moon phases
 language: en                 # en | es | de | nl
 show_clock: true             # optional clock/date panel
+show_local_sensors: true
+local_sensors:
+  - entity: sensor.outdoor_temperature
+    name: Outdoor
+    icon: mdi:thermometer
+  - entity: sensor.rain_today
+    name: Rain Today
+    icon: mdi:weather-pouring
 tap_action:
   action: navigate
   navigation_path: /lovelace/weather
@@ -166,9 +183,37 @@ tap_action:
 | `language` | `en` | `en`, `es`, `de`, `nl` |
 | `show_clock` | `false` | Show clock & date panel |
 | `show_details` | `true` | Show humidity, wind, pressure |
+| `show_local_sensors` | `true` | Show configured `local_sensors` below weather details/forecast |
+| `local_sensors` | `[]` | Up to 8 Home Assistant entities to display; each supports `entity`, optional `name`, and optional `icon` |
 | `tap_action` | more-info | Standard HA tap action |
 | `ufo_easter_egg` | `false` | 🛸 You'll know when you see it |
 | `latitude_zone` | — | `arctic` for aurora borealis on clear nights |
+
+---
+
+
+## 🧩 Add your own sensors
+
+You can add sensors from the visual card editor under **Local Sensors**, or directly in YAML with `local_sensors`. The card reads each entity's current Home Assistant state and `unit_of_measurement`, so temperature, rain, UV, air quality, battery, and other sensor entities can be shown without creating a new weather provider.
+
+```yaml
+type: custom:turool-weather-card
+entity: weather.forecast_home
+show_forecast: true
+show_local_sensors: true
+local_sensors:
+  - entity: sensor.backyard_temperature
+    name: Backyard
+    icon: mdi:thermometer
+  - entity: sensor.home_humidity
+    name: Indoor Humidity
+    icon: mdi:water-percent
+  - entity: sensor.wind_gust
+    name: Gusts
+    icon: mdi:weather-windy
+```
+
+If an entity is temporarily `unknown` or `unavailable`, Nimbus displays `--` until Home Assistant provides a new value.
 
 ---
 

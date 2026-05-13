@@ -2,10 +2,19 @@
 
 ![Nimbus Weather Card](https://github.com/maxfok/nimbus-weather-card/raw/main/Screen_Recording_2026-05-09_at_7_59_24_AM.gif)
 
-A beautiful, Apple Weather‑inspired custom card for Home Assistant with smooth particle effects, dynamic backgrounds, and full moon phase support.
+A beautiful, Apple Weather‑inspired Home Assistant dashboard card with smooth particle effects, dynamic backgrounds, and full moon phase support.
 
 🔗 **GitHub**: https://github.com/alpha520098/nimbus-weather-card<br>
-📦 **HACS**: Search "Turool Weather Card"
+📦 **HACS**: Search "Nimbus Weather Card" after adding this repository as a custom dashboard repository
+
+---
+
+
+## 🧭 HACS category
+
+Nimbus Weather Card is a **Home Assistant dashboard card** (Lovelace/frontend resource). It is not a backend integration and does not create Home Assistant devices, services, or entities.
+
+When adding the repository in HACS, choose **Dashboard** as the category. After installation, add it to a dashboard with `type: custom:turool-weather-card` (or the backwards-compatible `custom:nimbus-weather-card` alias).
 
 ---
 
@@ -19,10 +28,11 @@ A beautiful, Apple Weather‑inspired custom card for Home Assistant with smooth
 - **Smart units** – automatically converts °C/°F reading native entity attributes
 - **Multilingual** – English, Spanish, German, Dutch (and more via PR!)
 - **Hourly/Daily forecast toggle** – tap the forecast bar to switch view
-- **Custom tap action** – navigate, call-service, url, or more-info
-- **Clock & date panel** – optional, togglable
-- **Custom local sensors** – add up to 8 Home Assistant entities and display their live state, unit, label, and icon below the weather details/forecast
-- **HACS compatible** – one-click install via custom repository
+- **Custom tap action** – navigate, open URL, disable tap, or show more-info
+- **Clock & date panel** – optional AM/PM or 24-hour time, with optional seconds
+- **Custom local sensors** – add up to 8 Home Assistant entities from the visual editor and display their live state, unit, label, and icon below the weather details/forecast
+- **Three card sizes** – small, medium, and large layouts for different dashboard sections
+- **HACS Dashboard compatible** – install as a Dashboard/Frontend custom repository, not as a backend integration or plugin
 
 ---
 
@@ -30,10 +40,13 @@ A beautiful, Apple Weather‑inspired custom card for Home Assistant with smooth
 
 "https://github.com/maxfok/nimbus-weather-card/raw/main/Screen_Recording_2026-05-09_at_7_59_24_AM.gif"
 
-This release focuses on Home Assistant usability: custom local sensors can be added from the editor or YAML, and the card registration has been fixed while keeping the earlier atmosphere and forecast-modal polish.
+This release focuses on Home Assistant usability: custom local sensors can be added from the editor or YAML, the card can be resized to small/medium/large, and the clock supports AM/PM plus seconds while keeping the earlier atmosphere and forecast-modal polish.
 
 ### 🧩 Home Assistant Local Sensors
-Add your own Home Assistant entities under **Local Sensors** in the visual editor, or configure them in YAML with `local_sensors`. They display below the details/forecast with live state, unit, label, and icon.
+Pick your weather entity from the editor, then add your own Home Assistant entities under **Local Sensors**, or configure them in YAML with `local_sensors`. They display below the details/forecast with live state, unit, label, and icon.
+
+### 📐 Sizes + Clock Options
+Choose `small`, `medium`, or `large` from the editor. The same menu also lets you turn off 24-hour time for AM/PM output and enable seconds for a live clock.
 
 ### 🌅 Slow Background Cross-Fade
 Sky gradients now transition with a slow 3-minute cross-fade instead of an abrupt change. Sunrise, golden hour, daytime, and night phases blend naturally as sun elevation changes. The card also schedules a refresh around key sun-elevation thresholds so the sky updates at the right moment.
@@ -74,6 +87,8 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 ## 📋 Changelog
 
 ### v2.3.2
+- ✨ **Small/medium/large layouts** — choose the dashboard footprint from the visual editor or YAML with `card_size`.
+- ✨ **AM/PM clock with seconds** — use `use_24h: false` and `clock_show_seconds: true` for a live 12-hour clock.
 - ✨ **Home Assistant local sensors** — add your own entities from the visual editor or YAML and display them on the card alongside the forecast.
 - ✨ **Forecast + sensors together** — local sensors no longer require disabling the forecast.
 - 🐛 Fixed custom element registration so Home Assistant can load `custom:turool-weather-card` reliably, with `custom:nimbus-weather-card` retained as a backwards-compatible alias.
@@ -136,11 +151,11 @@ On clear nights, a random star detaches and streaks diagonally across the sky ev
 ## 🔧 Installation
 
 ### Via HACS (recommended)
-1. Open HACS → Frontend
+1. Open HACS → Dashboard (or Frontend, depending on your Home Assistant/HACS version)
 2. Click the three-dot menu (⋮) → **Custom repositories**
 3. Add URL: `https://github.com/alpha520098/nimbus-weather-card`
-4. Category: **Dashboard**
-5. Click **Add**, then find **Turool Weather Card** and install
+4. Category: **Dashboard** (this is the dashboard/frontend category, not an integration/plugin)
+5. Click **Add**, then find **Nimbus Weather Card** and install
 
 ### Manual
 1. Download `turool-weather-card.js`
@@ -159,7 +174,10 @@ entity: weather.forecast_home
 sun_entity: sun.sun          # optional but recommended
 moon_entity: sensor.moon     # optional, for moon phases
 language: en                 # en | es | de | nl
+card_size: medium            # small | medium | large
 show_clock: true             # optional clock/date panel
+use_24h: false               # false enables AM/PM
+clock_show_seconds: true     # optional seconds in the clock
 show_local_sensors: true
 local_sensors:
   - entity: sensor.outdoor_temperature
@@ -181,7 +199,10 @@ tap_action:
 | `sun_entity` | `sun.sun` | For accurate day/night detection |
 | `moon_entity` | — | Moon phase sensor |
 | `language` | `en` | `en`, `es`, `de`, `nl` |
+| `card_size` | `medium` | `small`, `medium`, or `large` layout sizing |
 | `show_clock` | `false` | Show clock & date panel |
+| `use_24h` | `true` | Set `false` for AM/PM clock and hourly forecast labels |
+| `clock_show_seconds` | `false` | Show seconds in the clock |
 | `show_details` | `true` | Show humidity, wind, pressure |
 | `show_local_sensors` | `true` | Show configured `local_sensors` below weather details/forecast |
 | `local_sensors` | `[]` | Up to 8 Home Assistant entities to display; each supports `entity`, optional `name`, and optional `icon` |
@@ -194,7 +215,7 @@ tap_action:
 
 ## 🧩 Add your own sensors
 
-You can add sensors from the visual card editor under **Local Sensors**, or directly in YAML with `local_sensors`. The card reads each entity's current Home Assistant state and `unit_of_measurement`, so temperature, rain, UV, air quality, battery, and other sensor entities can be shown without creating a new weather provider.
+You can add sensors from the visual card editor under **Local Sensors**, or directly in YAML with `local_sensors`. The editor also includes entity pickers for available weather entities so users can choose their own outdoor weather source without editing JavaScript. The card reads each entity's current Home Assistant state and `unit_of_measurement`, so temperature, rain, UV, air quality, battery, and other sensor entities can be shown without creating a new weather provider.
 
 ```yaml
 type: custom:turool-weather-card
